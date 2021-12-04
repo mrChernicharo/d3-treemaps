@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+
+<head>
+	<meta charset="utf-8" />
+	<style>
+		body {
+			margin: 0;
+			font: 10px sans-serif;
+			background-color: #232020;
+			overflow-x: hidden;
+			color: #fff;
+		}
+
+		.node {
+			box-sizing: border-box;
+			position: absolute;
+			overflow: hidden;
+			padding: 0.5rem;
+			/* background-color: blue; */
+		}
+	</style>
+</head>
+
+<body>
+	<h1>Treemap</h1>
+
+	<div id="chart-area"></div>
+
+	<script src="//d3js.org/d3.v5.min.js"></script>
+	<!-- <script
+		src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.16.0/d3.js"
+		integrity="sha512-F63QPFxQ27mn9COmkZhSirC1pBNeVJ7MJJs4wtK6XfiAaH3WM1SfX6Sv2Pme/499+hafP0dALVZOADw4W2r6eQ=="
+		crossorigin="anonymous"
+		referrerpolicy="no-referrer"
+	></script> -->
+	<!-- <script src="//d3js.org/d3.v5.min.js"></script> -->
+
+	<script>
+		var margins, width, height, formatedData;
+
+		window.addEventListener('resize', resize);
+
+		const colors = [
+			'#02394a',
+			'#5158bb',
+			'#a263da',
+			'#ca68ea',
+			'#ef5cc9',
+			'#eb4b98',
+		];
+		let stratify = d3
+			.stratify()
+			.id(d => d.name)
+			.parentId(d => d.parent);
+
+		let treemap = (width, height) =>
+			d3.treemap().size([width, height]).padding(20).round(true);
+
+		d3.csv('../players.csv').then(data => {
+			formatedData = parse(data);
+			const positions = reduceBy('position', formatedData);
+			const countries = reduceBy('country', formatedData);
+			const clubs = reduceBy('club', formatedData);
+			const ages = reduceBy('age', formatedData);
+
+			const nested = d3
+				.nest()
+				.key(d => d.position)
+				.key(d => d.club)
+				.entries(formatedData);
+
+			const nested2 = d3
+				.nest()
+				.key(d => d.club)
+				.entries(formatedData);
+
+			const hier = [{ id: 'Players', parent: '' }];
+			const level1 = Object.entries(positions).map(([k, v]) => ({
+				id: k,
+				value: v,
+				parent: hier[0],
+			}));
+			const players = formatedData.map(player => {
+				const pos = level1.find(item => item.id === player.position);
+				return {
+					id: player.name,
+					position: player.position,
+					value: player.value,
+					parent: { id: pos.id, value: pos.value, parent: hier[0] },
+				};
+			});
+
+			console.log({
+				formatedData,
+				positions,
+				countries,
+				clubs,
+				ages,
+				nested,
+				nested2,
+				level1,
+				players,
+				// level2,
+			});
+
+			update(hier);
+		});
+
+		function update(data) {
+			let root = stratify(data)
+				.sum(d => d.value)
+				.sort((a, b) => a.value - b.value);
+
+			console.log(root);
+		}
+
+		function parse(data) {
+			return data.map(d => ({
+				rank: Number(d.Rank) + 1,
+				position: d.Position,
+				age: Number(d.Age),
+				club: d.Club,
+				country: d.Country,
+				name: d.Name,
+				value: Number(d['Markey Value In Millions(£)']),
+			}));
+		}
+
+		function reduceBy(key, data) {
+			return data.reduce((acc, player) => {
+				acc[player[key]]
+					? (acc[player[key]] += player.value)
+					: (acc[player[key]] = player.value);
+				return acc;
+			}, {});
+		}
+
+		function resize(e) {
+			setDims();
+			update(formatedData);
+		}
+
+		function setDims() {
+			margins = { top: 100, left: window.innerWidth / 20 };
+			width = window.innerWidth - margins.left * 2;
+			height = window.innerHeight - margins.top * 2;
+		}
+	</script>
+</body>

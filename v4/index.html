@@ -52,18 +52,18 @@
 		const data = [
 			{ name: 'Eve', parent: '', wisdom: 210 },
 			{ name: 'Abel', parent: 'Eve', wisdom: 120 },
-			{ name: 'Azura', parent: 'Eve', wisdom: 70 },
+			{ name: 'Azura', parent: 'Eve', wisdom: 110 },
 			{ name: 'Seth', parent: 'Eve', wisdom: 90 },
 			{ name: 'Awan', parent: 'Eve', wisdom: 180 },
 			{ name: 'Cain', parent: 'Eve', wisdom: 60 },
 			{ name: 'Noam', parent: 'Seth', wisdom: 100 },
-			{ name: 'Enos', parent: 'Seth', wisdom: 60 },
+			{ name: 'Enos', parent: 'Seth', wisdom: 190 },
 			{ name: 'Enoch', parent: 'Awan', wisdom: 80 },
 			{ name: 'Jeremy', parent: 'Cain', wisdom: 150 },
 			{ name: 'Juah', parent: 'Cain', wisdom: 120 },
 			{ name: 'Aaron', parent: 'Enos', wisdom: 140 },
-			{ name: 'Luka', parent: 'Aaron', wisdom: 130 },
-			{ name: 'Lili', parent: 'Aaron', wisdom: 40 },
+			{ name: 'Luka', parent: 'Aaron', wisdom: 100 },
+			{ name: 'Lili', parent: 'Aaron', wisdom: 140 },
 		];
 
 		let stratify = d3
@@ -84,7 +84,7 @@
 				// .sort((a, b) => a.value - b.value);
 				// .sort((a, b) => a.wisdom - b.wisdom || a.height - b.height);
 				.sort((a, b) => a.depth - b.depth);
-
+			console.log({ data, root });
 			treemap(width, height)(root);
 
 			d3.select('#chart-area')
