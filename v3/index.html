@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+
+<head>
+	<meta charset="utf-8" />
+	<style>
+		body {
+			margin: 0;
+			font: 10px sans-serif;
+			background-color: #232020;
+			overflow-x: hidden;
+			color: #fff;
+		}
+
+		/* #chart-area {
+            border: 1px solid red;
+            box-sizing: border-box;
+            margin: 0 auto;
+            position: relative;
+            min-height: 100vh;
+        } */
+
+		.node {
+			box-sizing: border-box;
+			position: absolute;
+			overflow: hidden;
+		}
+	</style>
+</head>
+
+<body>
+	<h1>Treemap</h1>
+	<form>
+		<p>Transition</p>
+		<input type="radio" id="radio-on" name="off" value="On" />
+		<label for="radio-on">On</label>
+
+		<input type="radio" id="radio-off" name="off" value="Off" />
+		<label for="radio-off">Off</label>
+	</form>
+
+	<div id="chart-area"></div>
+
+	<!-- <script src="//d3js.org/d3.v5.min.js"></script> -->
+	<script
+		src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.16.0/d3.js"
+		integrity="sha512-F63QPFxQ27mn9COmkZhSirC1pBNeVJ7MJJs4wtK6XfiAaH3WM1SfX6Sv2Pme/499+hafP0dALVZOADw4W2r6eQ=="
+		crossorigin="anonymous"
+		referrerpolicy="no-referrer"
+	></script>
+	<script>
+		var transitions = false;
+		var form = document.querySelector('form');
+
+		var formatedData;
+		var margins, width, height;
+
+		window.addEventListener('resize', resize);
+		form.addEventListener(
+			'change',
+			e => (transitions = e.srcElement.value === 'On' ? true : false)
+		);
+
+		var format = d3.format(',d');
+
+		var color = d3
+			.scaleOrdinal()
+			// .range(["#02394a", "#043565", "#2b4790", "#5158bb", "#7a5ecb", "#a263da", "#ca68ea", "#f26df9", "#ef5cc9", "#eb4b98"]
+			.range(
+				[
+					'#02394a',
+					'#2b4790',
+					'#5158bb',
+					'#a263da',
+					'#ca68ea',
+					'#ef5cc9',
+					'#eb4b98',
+				]
+					.reverse()
+					.map(c => {
+						c = d3.rgb(c);
+						c.opacity = 0.7;
+						return c;
+					})
+			);
+
+		var stratify = d3.stratify().parentId(d => {
+			// console.log(d.id.substring(0, d.id.lastIndexOf('.')), '::', d.id);
+			return d.id.substring(0, d.id.lastIndexOf('.'));
+		});
+
+		var treemap = (width, height) =>
+			d3.treemap().size([width, height]).padding(1).round(true);
+
+		d3.csv('../flare.csv').then(data => {
+			formatedData = data.map(d => ({
+				...d,
+				value: Number(d.value),
+			}));
+
+			setDims();
+			update(formatedData);
+		});
+
+		function update(data) {
+			var root = stratify(data)
+				.sum(d => d.value)
+				.sort((a, b) => b.height - a.height || b.value - a.value);
+
+			console.log(root);
+
+			treemap(width, height)(root);
+
+			d3.select('#chart-area')
+				.selectAll('.node')
+				.data(root.leaves())
+				.join('div')
+				.attr('class', 'node')
+				.transition()
+				.duration(transitions ? 400 : 0)
+				.attr('title', d => d.id + '\n' + format(d.value))
+				.style('left', d => d.x0 + margins.left + 'px')
+				.style('top', d => d.y0 + margins.top + 'px')
+				.style('width', d => d.x1 - d.x0 + 'px')
+				.style('height', d => d.y1 - d.y0 + 'px')
+				.style('background', d => {
+					// console.log(d)
+					while (d.depth > 1) {
+						d = d.parent;
+					}
+					// console.log(d.id);
+					return color(d.id);
+				})
+				.text(
+					d => `
+		                  ${d.id
+								.substring(d.id.lastIndexOf('.') + 1)
+								.split(/(?=[A-Z][^A-Z])/g)
+								.join(' ')}
+		                  ${format(d.value)}
+		                  `
+				);
+
+			// console.log({data,root,leaves: root.leaves()});
+		}
+
+		function resize(e) {
+			setDims();
+			update(formatedData);
+		}
+
+		function setDims() {
+			margins = { top: 100, left: window.innerWidth / 20 };
+			width = window.innerWidth - margins.left * 2;
+			height = window.innerHeight - margins.top * 2;
+		}
+	</script>
+</body>

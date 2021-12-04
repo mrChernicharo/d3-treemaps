@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+
+<head>
+	<meta charset="utf-8" />
+	<style>
+		body {
+			margin: 0;
+			font: 10px sans-serif;
+			background-color: #232020;
+			overflow-x: hidden;
+			color: #fff;
+		}
+
+		.node {
+			box-sizing: border-box;
+			position: absolute;
+			overflow: hidden;
+			padding: 0.5rem;
+			/* background-color: blue; */
+		}
+	</style>
+</head>
+
+<body>
+	<h1>Treemap</h1>
+
+	<div id="chart-area"></div>
+
+	<script src="//d3js.org/d3.v5.min.js"></script>
+	<!-- <script
+		src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.16.0/d3.js"
+		integrity="sha512-F63QPFxQ27mn9COmkZhSirC1pBNeVJ7MJJs4wtK6XfiAaH3WM1SfX6Sv2Pme/499+hafP0dALVZOADw4W2r6eQ=="
+		crossorigin="anonymous"
+		referrerpolicy="no-referrer"
+	></script> -->
+	<!-- <script src="//d3js.org/d3.v5.min.js"></script> -->
+
+	<script>
+		var margins, width, height;
+
+		window.addEventListener('resize', resize);
+
+		const colors = [
+			'#02394a',
+			'#5158bb',
+			'#a263da',
+			'#ca68ea',
+			'#ef5cc9',
+			'#eb4b98',
+		];
+
+		const data = [
+			{ name: 'Eve', parent: '', wisdom: 210 },
+			{ name: 'Abel', parent: 'Eve', wisdom: 120 },
+			{ name: 'Azura', parent: 'Eve', wisdom: 70 },
+			{ name: 'Seth', parent: 'Eve', wisdom: 90 },
+			{ name: 'Awan', parent: 'Eve', wisdom: 180 },
+			{ name: 'Cain', parent: 'Eve', wisdom: 60 },
+			{ name: 'Noam', parent: 'Seth', wisdom: 100 },
+			{ name: 'Enos', parent: 'Seth', wisdom: 60 },
+			{ name: 'Enoch', parent: 'Awan', wisdom: 80 },
+			{ name: 'Jeremy', parent: 'Cain', wisdom: 150 },
+			{ name: 'Juah', parent: 'Cain', wisdom: 120 },
+			{ name: 'Aaron', parent: 'Enos', wisdom: 140 },
+			{ name: 'Luka', parent: 'Aaron', wisdom: 130 },
+			{ name: 'Lili', parent: 'Aaron', wisdom: 40 },
+		];
+
+		let stratify = d3
+			.stratify()
+			.id(d => d.name)
+			.parentId(d => d.parent);
+
+		let treemap = (width, height) =>
+			d3.treemap().size([width, height]).padding(20).round(true);
+
+		setDims();
+		update(data);
+
+		function update(data) {
+			let root = stratify(data)
+				.sum(d => d.wisdom)
+				// .sort((a, b) => a.height - b.height);
+				// .sort((a, b) => a.value - b.value);
+				// .sort((a, b) => a.wisdom - b.wisdom || a.height - b.height);
+				.sort((a, b) => a.depth - b.depth);
+
+			treemap(width, height)(root);
+
+			d3.select('#chart-area')
+				.selectAll('.node')
+				// .data(root.leaves())
+				// .data(root.ancestors())
+				.data(root.descendants())
+				// .enter()
+				// .append('div')
+				.join('div')
+				.attr('class', 'node')
+				.transition()
+				.attr('title', d => d.id)
+				.style('left', d => d.x0 + margins.left + 'px')
+				.style('top', d => d.y0 + margins.top + 'px')
+				.style('width', d => d.x1 - d.x0 + 'px')
+				.style('height', d => d.y1 - d.y0 + 'px')
+				.style('background', d => colors[d.depth])
+				.text(d => d.id + ' ' + d.value);
+		}
+
+		function resize(e) {
+			setDims();
+			update(data);
+		}
+
+		function setDims() {
+			margins = { top: 100, left: window.innerWidth / 20 };
+			width = window.innerWidth - margins.left * 2;
+			height = window.innerHeight - margins.top * 2;
+			console.log({ margins, width, height });
+		}
+	</script>
+</body>

@@ -76,7 +76,7 @@
                 .data(root.leaves())
                 .join("div")
                 .attr("class", "node")
-                .transition()
+                // .transition()
                 .attr("title", (d) => d.id + "\n" + format(d.value))
                 .style("left", (d) => d.x0 + margins.left + "px")
                 .style("top", (d) => d.y0 + margins.top + "px")
