@@ -9,7 +9,6 @@
 			background-color: #fff;
 			/* background-color: #232020; */
 			overflow-x: hidden;
-			/* color: #fff; */
 		}
 
 		.node {
@@ -19,6 +18,10 @@
 			/* font-weight: bold; */
 			padding: 0.5rem;
 			/* background-color: blue; */
+		}
+
+		text {
+			fill: #fff;
 		}
 
 		.parent {
@@ -44,6 +47,9 @@
 
 		<input type="radio" id="radio-team" name="filter" value="team" />
 		<label for="radio-team">team</label>
+
+		<input type="radio" id="radio-age" name="filter" value="age" />
+		<label for="radio-age">age</label>
 	</form>
 
 	<!-- <form>
@@ -105,7 +111,7 @@
 			.parentId(d => d.parent);
 
 		let treemap = (width, height) =>
-			d3.treemap().size([width, height]).paddingOuter(10);
+			d3.treemap().size([width, height]).paddingOuter(5).paddingInner(3);
 
 		d3.csv('../players.csv').then(data => {
 			formatedData = parse(data);
@@ -131,9 +137,10 @@
 				.attr('height', height + margins.top)
 
 				.selectAll('.node')
+				.data([...root.descendants()])
+
 				// .data(root.leaves())
 				// .data(root.ancestors())
-				.data(root.descendants())
 				.join('rect')
 				.attr('class', d => {
 					return d.depth === 1 ? 'node parent' : 'node';
@@ -144,7 +151,8 @@
 				.attr('y', d => d.y0 + margins.top + 'px')
 				.attr('width', d => d.x1 - d.x0 + 'px')
 				.attr('height', d => d.y1 - d.y0 + 'px')
-				.attr('opacity', d => d.height + 1 * 0.25)
+				.attr('opacity', d => d.height + 1 * 0.4)
+				// .attr('stroke', '#fff')
 				.attr('fill', (d, i, e) => {
 					return d3.interpolateOranges(
 						// return d3.interpolateCool(
@@ -157,6 +165,21 @@
 							: i * 0.001 + 0.4
 					);
 				});
+
+			d3.select('svg')
+				.attr('width', width + margins.left)
+				.attr('height', height + margins.top)
+				.selectAll('text')
+				.data([...root.descendants()])
+				.join('text')
+				.transition()
+				.attr('title', d => d.id)
+				.attr('x', d => d.x0 + margins.left + 6 + 'px')
+				.attr('y', d => d.y0 + margins.top + 10 + 'px')
+				.attr('width', d => d.x1 - d.x0 + 'px')
+				.attr('height', d => d.y1 - d.y0 + 'px')
+				.style('font-size', '8px')
+				.text(d => d.id.split(' ')[1]);
 		}
 
 		function parse(data) {
@@ -196,31 +219,32 @@
 
 		function getFinalData(formatedData) {
 			const totalValue = formatedData.reduce((a, b) => (a += b.value), 0);
+			const reducedProps = reduceBy(selectedProp, formatedData);
+			console.log({ reducedProps });
 
-			const reducedTeams = reduceBy(selectedProp, formatedData);
-			const byTeam = Object.entries(reducedTeams).map(([k, v]) => ({
+			const byProp = Object.entries(reducedProps).map(([k, v]) => ({
 				id: k,
 				value: v,
 				parent: 'Root',
 			}));
+			console.log({ byProp });
 
-			const playersByTeam = formatedData.map(player => {
-				const team = byTeam.find(
-					item => item.id === player[selectedProp]
+			const playersByProp = formatedData.map(player => {
+				const item = byProp.find(
+					item => item.id === String(player[selectedProp])
 				);
 				return {
 					id: player.name,
 					value: player.value,
-					team: player.team,
-					parent: team.id,
+					parent: String(item.id),
 				};
 			});
-			positions = byTeam.map(item => item.id);
+			// items = byProp.map(item => item.id);
 			const hierarchy = [{ id: 'Root', parent: '', value: totalValue }]
-				.concat(byTeam)
-				.concat(playersByTeam);
+				.concat(byProp)
+				.concat(playersByProp);
 
-			console.log({ reducedTeams, byTeam, totalValue, hierarchy });
+			console.log({ reducedProps, byProp, totalValue, hierarchy });
 
 			return hierarchy;
 		}
