@@ -16,6 +16,7 @@
 			box-sizing: border-box;
 			position: absolute;
 			overflow: hidden;
+			/* font-weight: bold; */
 			/* padding: 0.5rem; */
 			/* background-color: blue; */
 		}
@@ -43,13 +44,6 @@
 
 		let colors;
 		let positions;
-		// 	'#02394a',
-		// 	'#5158bb',
-		// 	'#a263da',
-		// 	'#ca68ea',
-		// 	'#ef5cc9',
-		// 	'#eb4b98',
-		// ];
 
 		let stratify = d3
 			.stratify()
@@ -105,7 +99,7 @@
 						positions.indexOf(d.data.position) / positions.length
 					);
 				})
-				.text(d => d.id + ' ' + d.value + 'M');
+				.text(d => d.id + ' ' + format(d.value));
 		}
 
 		function parse(data) {
@@ -129,6 +123,9 @@
 			}, {});
 		}
 
+		function format(val) {
+			return d3.format('~s')(val * 1_000_000);
+		}
 		function resize(e) {
 			setDims();
 			update(getFinalData(formatedData));
@@ -162,11 +159,11 @@
 				};
 			});
 			positions = byPosition.map(item => item.id);
-
-			// console.log(playersByPosition.find(p => p.name === ))
-			return [{ id: 'Root', parent: '', value: totalValue }]
+			const hier = [{ id: 'Root', parent: '', value: totalValue }]
 				.concat(byPosition)
 				.concat(playersByPosition);
+			console.log(hier);
+			return hier;
 		}
 	</script>
 </body>

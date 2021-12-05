@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<head>
+	<meta charset="utf-8" />
+	<style>
+		body {
+			margin: 0;
+			font: 10px sans-serif;
+			background-color: #fff;
+			/* background-color: #232020; */
+			overflow-x: hidden;
+			/* color: #fff; */
+		}
+
+		.node {
+			box-sizing: border-box;
+			position: absolute;
+			overflow: hidden;
+			/* font-weight: bold; */
+			padding: 0.5rem;
+			/* background-color: blue; */
+		}
+
+		.parent {
+			transition: translate(-1rem, -1rem);
+		}
+	</style>
+</head>
+
+<body>
+	<h1>Treemap</h1>
+	<form>
+		<p>Filter</p>
+		<input
+			type="radio"
+			id="radio-position"
+			name="filter"
+			value="position"
+		/>
+		<label for="radio-position">position</label>
+
+		<input type="radio" id="radio-country" name="filter" value="country" />
+		<label for="radio-country">country</label>
+
+		<input type="radio" id="radio-team" name="filter" value="team" />
+		<label for="radio-team">team</label>
+	</form>
+
+	<!-- <form>
+		<p>Filter</p>
+		<input
+			type="radio"
+			id="radio-position"
+			name="filter"
+			value="position"
+		/>
+		<label for="radio-position">position</label>
+
+		<input type="radio" id="radio-team" name="filter" value="team" />
+		<label for="radio-team">Team</label>
+
+		<input type="radio" id="radio-country" name="filter" value="country" />
+		<label for="radio-country">Country</label>
+	</form> -->
+	<div id="chart-area"></div>
+
+	<!-- <script src="//d3js.org/d3.v5.min.js"></script> -->
+	<script
+		src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.16.0/d3.js"
+		integrity="sha512-F63QPFxQ27mn9COmkZhSirC1pBNeVJ7MJJs4wtK6XfiAaH3WM1SfX6Sv2Pme/499+hafP0dALVZOADw4W2r6eQ=="
+		crossorigin="anonymous"
+		referrerpolicy="no-referrer"
+	></script>
+	<!-- <script src="//d3js.org/d3.v5.min.js"></script> -->
+
+	<script>
+		var margins,
+			width,
+			height,
+			formatedData,
+			finalData,
+			selectedProp = 'team',
+			form;
+
+		window.addEventListener('resize', resize);
+
+		form = document.querySelector('form');
+
+		form.addEventListener('change', e => {
+			console.log(e.srcElement.value);
+			selectedProp = e.srcElement.value;
+
+			update(getFinalData(formatedData));
+		});
+
+		d3.select('#chart-area').append('svg');
+
+		function changeFilter() {}
+		let colors;
+		let positions;
+
+		let stratify = d3
+			.stratify()
+			.id(d => d.id)
+			.parentId(d => d.parent);
+
+		let treemap = (width, height) =>
+			d3.treemap().size([width, height]).paddingOuter(10);
+
+		d3.csv('../players.csv').then(data => {
+			formatedData = parse(data);
+			// console.log(formatedData);
+			finalData = getFinalData(formatedData);
+			setDims();
+			update(finalData);
+		});
+
+		function update(data) {
+			// console.log(data);
+			let root = stratify(data)
+				.sum(d => {
+					let isLeaf = d.parent && d.parent !== 'Root';
+					return isLeaf ? d.value : 0;
+				})
+				.sort((a, b) => b.value - a.value);
+
+			treemap(width, height)(root);
+
+			d3.select('svg')
+				.attr('width', width + margins.left)
+				.attr('height', height + margins.top)
+
+				.selectAll('.node')
+				// .data(root.leaves())
+				// .data(root.ancestors())
+				.data(root.descendants())
+				.join('rect')
+				.attr('class', d => {
+					return d.depth === 1 ? 'node parent' : 'node';
+				})
+				.transition()
+				.attr('title', d => d.id)
+				.attr('x', d => d.x0 + margins.left + 'px')
+				.attr('y', d => d.y0 + margins.top + 'px')
+				.attr('width', d => d.x1 - d.x0 + 'px')
+				.attr('height', d => d.y1 - d.y0 + 'px')
+				.attr('opacity', d => d.height + 1 * 0.25)
+				.attr('fill', (d, i, e) => {
+					return d3.interpolateOranges(
+						// return d3.interpolateCool(
+						// return d3.interpolateCubehelixDefault(
+						// return d3.interpolateRainbow(
+						// positions.indexOf(d.data.position) / positions.length
+						// i / e.length
+						d.depth === 1
+							? i * Math.random() * 0.1 + 0.3
+							: i * 0.001 + 0.4
+					);
+				});
+		}
+
+		function parse(data) {
+			return data.map(d => ({
+				rank: Number(d.Rank) + 1,
+				position: d.Position,
+				age: Number(d.Age),
+				team: d.Club,
+				country: d.Country,
+				name: d.Name,
+				value: Number(d['Markey Value In Millions(£)']),
+			}));
+		}
+
+		function reduceBy(key, data) {
+			return data.reduce((acc, player) => {
+				acc[player[key]]
+					? (acc[player[key]] += player.value)
+					: (acc[player[key]] = player.value);
+				return acc;
+			}, {});
+		}
+
+		function format(val) {
+			return d3.format('~s')(val * 1_000_000);
+		}
+		function resize(e) {
+			setDims();
+			update(getFinalData(formatedData));
+		}
+
+		function setDims() {
+			margins = { top: 100, left: window.innerWidth / 20 };
+			width = window.innerWidth - margins.left * 2;
+			height = window.innerHeight - margins.top * 2;
+		}
+
+		function getFinalData(formatedData) {
+			const totalValue = formatedData.reduce((a, b) => (a += b.value), 0);
+
+			const reducedTeams = reduceBy(selectedProp, formatedData);
+			const byTeam = Object.entries(reducedTeams).map(([k, v]) => ({
+				id: k,
+				value: v,
+				parent: 'Root',
+			}));
+
+			const playersByTeam = formatedData.map(player => {
+				const team = byTeam.find(
+					item => item.id === player[selectedProp]
+				);
+				return {
+					id: player.name,
+					value: player.value,
+					team: player.team,
+					parent: team.id,
+				};
+			});
+			positions = byTeam.map(item => item.id);
+			const hierarchy = [{ id: 'Root', parent: '', value: totalValue }]
+				.concat(byTeam)
+				.concat(playersByTeam);
+
+			console.log({ reducedTeams, byTeam, totalValue, hierarchy });
+
+			return hierarchy;
+		}
+	</script>
+</body>

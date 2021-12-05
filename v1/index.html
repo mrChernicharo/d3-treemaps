@@ -49,7 +49,7 @@
             .padding(1)
             .round(true);
 
-        d3.csv("../flare.csv", type, (error, data) => {
+        d3.csv("flare.csv", type, (error, data) => {
             if (error) throw error;
 
             var root = stratify(data)
